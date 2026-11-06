@@ -19,13 +19,20 @@ class AppointmentsScreen extends StatelessWidget {
         elevation: 0,
         title: const Text('My Appointments', style: TextStyle(fontWeight: FontWeight.w700)),
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () => c.loadLiveAppointments(),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0D9488)),
+            tooltip: 'Refresh appointments',
+          ),
+        ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Obx(
-                  () => Row(
+              () => Row(
                 children: List.generate(tabs.length, (i) {
                   final selected = c.tab.value == i;
                   return Expanded(
@@ -38,6 +45,15 @@ class AppointmentsScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: selected ? const Color(0xFF0D9488) : Colors.white,
                           borderRadius: BorderRadius.circular(14),
+                          boxShadow: selected
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF0D9488).withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  )
+                                ]
+                              : null,
                         ),
                         child: Text(
                           tabs[i],
@@ -57,14 +73,39 @@ class AppointmentsScreen extends StatelessWidget {
           ),
           Expanded(
             child: Obx(() {
+              if (c.isLoading.value) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+                );
+              }
+
               final list = c.filtered;
               if (list.isEmpty) {
-                return const Center(child: Text('No appointments', style: TextStyle(color: Color(0xFF64748B))));
+                return RefreshIndicator(
+                  onRefresh: () => c.loadLiveAppointments(),
+                  color: const Color(0xFF0D9488),
+                  child: ListView(
+                    children: const [
+                      SizedBox(height: 100),
+                      Center(
+                        child: Text(
+                          'No appointments in this category',
+                          style: TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               }
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                itemCount: list.length,
-                itemBuilder: (_, i) => _AppointmentCard(item: list[i]),
+
+              return RefreshIndicator(
+                onRefresh: () => c.loadLiveAppointments(),
+                color: const Color(0xFF0D9488),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  itemCount: list.length,
+                  itemBuilder: (_, i) => _AppointmentCard(item: list[i]),
+                ),
               );
             }),
           ),
@@ -85,7 +126,17 @@ class _AppointmentCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,6 +165,30 @@ class _AppointmentCard extends StatelessWidget {
                 const Icon(Icons.event, size: 16, color: Color(0xFF0D9488)),
                 const SizedBox(width: 6),
                 Text('${item.date}  •  ${item.time}', style: const TextStyle(fontSize: 13)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: item.status == 'upcoming'
+                        ? const Color(0xFFF0FDFA)
+                        : item.status == 'completed'
+                            ? const Color(0xFFEFF6FF)
+                            : const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.status.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: item.status == 'upcoming'
+                          ? const Color(0xFF0D9488)
+                          : item.status == 'completed'
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFFE11D48),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],

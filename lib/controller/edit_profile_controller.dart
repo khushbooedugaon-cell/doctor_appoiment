@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'profile_controller.dart';
-import '../modle/user_model.dart';
+import '../services/api_service.dart';
 
 class EditProfileController extends GetxController {
   final nameController = TextEditingController();
@@ -26,18 +26,39 @@ class EditProfileController extends GetxController {
   Future<void> save() async {
     if (!formKey.currentState!.validate()) return;
     isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 1));
-    if (Get.isRegistered<ProfileController>()) {
-      Get.find<ProfileController>().user.value = UserModel(
+    try {
+      final updated = await ApiService.updateProfile(
         name: nameController.text.trim(),
-        email: emailController.text.trim(),
         phone: phoneController.text.trim(),
         city: cityController.text.trim(),
       );
+
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().user.value = updated;
+      }
+
+      Get.back();
+      Get.snackbar(
+        'Profile Updated',
+        'Your profile changes have been saved successfully.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF0D9488),
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Update Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFE11D48),
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+      );
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
-    Get.back();
-    Get.snackbar('Saved', 'Profile update ho gaya', snackPosition: SnackPosition.BOTTOM);
   }
 
   @override

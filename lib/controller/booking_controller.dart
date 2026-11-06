@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../modle/booking_model.dart';
 import '../modle/doctor_model.dart';
+import '../services/api_service.dart';
+import 'appointment_controller.dart';
 
 class BookingController extends GetxController {
   final DoctorModel doctor;
@@ -41,6 +42,16 @@ class BookingController extends GetxController {
     '07:30 PM',
   ];
 
+  @override
+  void onInit() {
+    super.onInit();
+    // Pre-fill patient details from logged-in session
+    if (ApiService.currentUser != null) {
+      nameController.text = ApiService.currentUser!.name;
+      phoneController.text = ApiService.currentUser!.phone;
+    }
+  }
+
   void selectDate(int index) => selectedDate.value = index;
   void selectTime(int index) => selectedTime.value = index;
   void selectType(int index) => selectedType.value = index;
@@ -49,32 +60,55 @@ class BookingController extends GetxController {
     if (!formKey.currentState!.validate()) return;
 
     isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 2));
+    final scheduledDate =
+        '${dates[selectedDate.value]['day']}, ${dates[selectedDate.value]['date']} ${dates[selectedDate.value]['month']}';
+    final scheduledTime = times[selectedTime.value];
+    final consultationType = types[selectedType.value];
 
-    final booking = BookingModel(
-      doctorName: doctor.name,
-      specialty: doctor.specialty,
-      date: '${dates[selectedDate.value]['day']}, ${dates[selectedDate.value]['date']} ${dates[selectedDate.value]['month']}',
-      time: times[selectedTime.value],
-      type: types[selectedType.value],
-      patientName: nameController.text.trim(),
-      phone: phoneController.text.trim(),
-      note: noteController.text.trim(),
-    );
+    try {
+      final appt = await ApiService.bookAppointment(
+        doctorId: doctor.id,
+        doctorName: doctor.name,
+        specialty: doctor.specialty,
+        hospital: doctor.hospital,
+        fee: doctor.fee,
+        patientName: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        date: scheduledDate,
+        time: scheduledTime,
+        type: consultationType,
+        note: noteController.text.trim(),
+      );
 
-    isLoading.value = false;
+      // Refresh appointments list if controller exists
+      if (Get.isRegistered<AppointmentsController>()) {
+        Get.find<AppointmentsController>().loadLiveAppointments();
+      }
 
-    Get.back();
-    Get.snackbar(
-      'Booking Confirmed',
-      '${booking.doctorName} • ${booking.date} • ${booking.time}',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF0D9488),
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(16),
-      borderRadius: 12,
-      duration: const Duration(seconds: 3),
-    );
+      Get.back();
+      Get.snackbar(
+        'Booking Confirmed!',
+        '${appt.doctorName} • $scheduledDate at $scheduledTime',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF0D9488),
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Booking Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFE11D48),
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   @override

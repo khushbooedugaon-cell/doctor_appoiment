@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/home_controller.dart';
 import '../modle/doctor_model.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,38 +13,6 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBFA),
-      bottomNavigationBar: Obx(
-            () => NavigationBar(
-          height: 68,
-          selectedIndex: c.selectedNav.value,
-          onDestinationSelected: c.changeNav,
-          backgroundColor: Colors.white,
-          indicatorColor: const Color(0xFFCCFBF1),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: Color(0xFF0D9488)),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_month_rounded, color: Color(0xFF0D9488)),
-              label: 'Bookings',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              selectedIcon: Icon(Icons.chat_bubble_rounded, color: Color(0xFF0D9488)),
-              label: 'Chat',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: Color(0xFF0D9488)),
-              label: 'Profile',
-            ),
-          ],
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -52,7 +21,10 @@ class HomeScreen extends StatelessWidget {
             children: [
               const _Header(),
               const SizedBox(height: 18),
-              _SearchBar(controller: c.searchController),
+              _SearchBar(
+  controller: c.searchController,
+  onChanged: (val) => c.fetchDoctors(search: val),
+),
               const SizedBox(height: 20),
               const _UpcomingCard(),
               const SizedBox(height: 22),
@@ -62,9 +34,23 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 22),
               const _SectionTitle(title: 'Top Doctors', action: 'See all'),
               const SizedBox(height: 12),
-              ...c.doctors.map(
+              Obx(() {
+                if (c.doctors.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'No doctors found',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                    ),
+                  );
+                }
+                return Column(
+                  children: c.doctors.map(
                     (d) => _DoctorCard(doctor: d, onBook: () => c.bookDoctor(d)),
-              ),
+                  ).toList(),
+                );
+              }),
             ],
           ),
         ),
@@ -110,13 +96,7 @@ class _Header extends StatelessWidget {
         ),
         _IconBtn(
           icon: Icons.notifications_none_rounded,
-          onTap: () {
-            Get.snackbar(
-              'Notifications',
-              'Koi nayi notification nahi hai',
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          },
+          onTap: () => Get.to(() => const NotificationsScreen()),
         ),
       ],
     );
@@ -155,7 +135,12 @@ class _IconBtn extends StatelessWidget {
 
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
-  const _SearchBar({required this.controller});
+  final ValueChanged<String>? onChanged;
+
+  const _SearchBar({
+    required this.controller,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +158,7 @@ class _SearchBar extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        onChanged: onChanged,
         decoration: InputDecoration(
           hintText: 'Search doctors, clinics...',
           hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
