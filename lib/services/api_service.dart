@@ -18,34 +18,19 @@ class ApiService {
   /// Current logged-in user session (null by default until login or signup)
   static UserModel? currentUser;
 
-  /// Set to true to switch the entire mobile app to your live production cloud backend
-  static bool useLiveBackend = false;
+  /// Live Render.com production URL:
+  static const String liveBaseUrl = 'https://doctor-appoiment.onrender.com/api';
 
-  /// Paste your Render.com live URL here (e.g. 'https://medicare-backend-xyz.onrender.com/api')
-  static String liveBaseUrl = 'https://medicare-backend.onrender.com/api';
-
-  /// Optional custom override (e.g. 'http://192.168.1.5:5000/api' for physical device testing)
+  /// Optional custom override (if needed for local debugging)
   static String? customBaseUrl;
 
-  /// Base URL configured according to platform
-  /// - Live Cloud Backend: liveBaseUrl (if useLiveBackend = true)
-  /// - Web / Windows: http://localhost:5000/api
-  /// - Android Emulator: http://10.0.2.2:5000/api
-  /// - Physical Phone: replace with your local WiFi IP (e.g. http://192.168.1.5:5000/api)
+  /// Base URL configured for APK testing & production
+  /// Defaults directly to the live cloud backend for all physical devices
   static String get baseUrl {
-    if (useLiveBackend && liveBaseUrl.isNotEmpty) {
-      return liveBaseUrl;
-    }
     if (customBaseUrl != null && customBaseUrl!.isNotEmpty) {
       return customBaseUrl!;
     }
-    if (kIsWeb) {
-      return 'http://localhost:5000/api';
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000/api';
-    } else {
-      return 'http://localhost:5000/api';
-    }
+    return liveBaseUrl;
   }
 
   static Map<String, String> get _authHeaders {

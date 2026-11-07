@@ -1,0 +1,541 @@
+{
+  "info": {
+    "_postman_id": "medicare-doctor-appointment-live-api",
+    "name": "MediCare Doctor Appointment API (Live Render)",
+    "description": "Complete REST API collection for MediCare Doctor Appointment Mobile App & Admin Dashboard.\nLive Backend: https://doctor-appoiment.onrender.com",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://doctor-appoiment.onrender.com/api",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication (Patient)",
+      "item": [
+        {
+          "name": "Register New User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('user_token', json.data.token);",
+                  "    console.log('Saved user_token:', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khushi Kumari\",\n  \"email\": \"khushi.live@gmail.com\",\n  \"phone\": \"+91 98765 43210\",\n  \"password\": \"password123\",\n  \"city\": \"Patna\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new patient account into MySQL database."
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('user_token', json.data.token);",
+                  "    console.log('User token updated successfully!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahul@gmail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticate user and get JWT token."
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Get current logged-in user profile details."
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khushi Kumari\",\n  \"phone\": \"+91 98765 43210\",\n  \"city\": \"Patna\",\n  \"blood_group\": \"B+\",\n  \"weight\": \"56 kg\",\n  \"height\": \"5'5\\\"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Update user health vitals, contact, and profile info."
+          }
+        },
+        {
+          "name": "Get All Users / Patients (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/auth/users?search=",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "users"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get all registered users for Admin Dashboard."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Doctors Directory",
+      "item": [
+        {
+          "name": "Get All Doctors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/doctors?search=",
+              "host": ["{{base_url}}"],
+              "path": ["doctors"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Fetch all doctors with optional search query."
+          }
+        },
+        {
+          "name": "Get Doctor by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/doctors/1",
+              "host": ["{{base_url}}"],
+              "path": ["doctors", "1"]
+            },
+            "description": "Get detailed info for a single doctor by ID."
+          }
+        },
+        {
+          "name": "Get Doctor Specialties List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/doctors/specialties/list",
+              "host": ["{{base_url}}"],
+              "path": ["doctors", "specialties", "list"]
+            },
+            "description": "Get list of available doctor specialties."
+          }
+        },
+        {
+          "name": "Create New Doctor (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Vikram Rathore\",\n  \"specialty\": \"Cardiologist\",\n  \"hospital\": \"AIIMS Patna\",\n  \"rating\": 4.9,\n  \"experience\": \"14 yrs\",\n  \"fee\": \"₹1000\",\n  \"avatar_color\": \"#0D9488\",\n  \"online\": true,\n  \"about\": \"Renowned cardiologist specializing in non-invasive clinical heart care.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/doctors",
+              "host": ["{{base_url}}"],
+              "path": ["doctors"]
+            },
+            "description": "Add a new doctor to the Medicare directory."
+          }
+        },
+        {
+          "name": "Toggle Doctor Online Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/doctors/1/status",
+              "host": ["{{base_url}}"],
+              "path": ["doctors", "1", "status"]
+            },
+            "description": "Toggle doctor online/available status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Appointments",
+      "item": [
+        {
+          "name": "Book Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctor_id\": 1,\n  \"patient_name\": \"Khushi Kumari\",\n  \"phone\": \"+91 98765 43210\",\n  \"date\": \"Thu, 28 Nov\",\n  \"time\": \"10:30 AM\",\n  \"type\": \"In Clinic\",\n  \"note\": \"Regular health checkup and consultation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/appointments",
+              "host": ["{{base_url}}"],
+              "path": ["appointments"]
+            },
+            "description": "Book a doctor appointment."
+          }
+        },
+        {
+          "name": "Get My Appointments (User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/appointments",
+              "host": ["{{base_url}}"],
+              "path": ["appointments"]
+            },
+            "description": "Get all appointments booked by the logged in user."
+          }
+        },
+        {
+          "name": "Get All Appointments (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/appointments/admin/all?status=All",
+              "host": ["{{base_url}}"],
+              "path": ["appointments", "admin", "all"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "All"
+                }
+              ]
+            },
+            "description": "Admin endpoint to view all appointments across all patients."
+          }
+        },
+        {
+          "name": "Update Appointment Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Completed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/appointments/1/status",
+              "host": ["{{base_url}}"],
+              "path": ["appointments", "1", "status"]
+            },
+            "description": "Update appointment status to Upcoming, Completed, or Cancelled."
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/appointments/1/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["appointments", "1", "cancel"]
+            },
+            "description": "Cancel an appointment."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Admin Dashboard",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('admin_token', json.data.token);",
+                  "    console.log('Admin token saved!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@medicare.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "login"]
+            },
+            "description": "Admin authentication."
+          }
+        },
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/admin/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "stats"]
+            },
+            "description": "Aggregated metrics for Admin Portal: doctors, patients, appointments, revenue."
+          }
+        },
+        {
+          "name": "Send Broadcast Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Free Health Checkup Camp\",\n  \"message\": \"Visit Apollo Hospital this Sunday for a free cardiac screening camp.\",\n  \"type\": \"announcement\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/broadcast",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "broadcast"]
+            },
+            "description": "Send a broadcast notification to all registered patients."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            },
+            "description": "Get notifications for logged in user."
+          }
+        },
+        {
+          "name": "Mark Notifications Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read"]
+            },
+            "description": "Mark all notifications as read."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Chat & Consultations",
+      "item": [
+        {
+          "name": "Get Chat Conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations"]
+            },
+            "description": "Get list of active doctor chat conversations."
+          }
+        },
+        {
+          "name": "Get Messages with Doctor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "1", "messages"]
+            },
+            "description": "Fetch message history with Doctor ID 1."
+          }
+        },
+        {
+          "name": "Send Message to Doctor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hello Doctor, I have a question regarding my appointment tomorrow.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "1", "messages"]
+            },
+            "description": "Send a chat message to Doctor ID 1."
+          }
+        }
+      ]
+    }
+  ]
+}
+
