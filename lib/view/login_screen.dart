@@ -152,7 +152,7 @@ class LoginScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
 
-                    // Remember Me & Forgot Password
+                    // Remember Me
                     Row(
                       children: [
                         Obx(
@@ -173,26 +173,6 @@ class LoginScreen extends StatelessWidget {
                         const Text(
                           'Remember me',
                           style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            Get.snackbar(
-                              'Demo Notice',
-                              'Use password123 to log in',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: const Color(0xFF0D9488),
-                              colorText: Colors.white,
-                            );
-                          },
-                          child: const Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF0D9488),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                         ),
                       ],
                     ),

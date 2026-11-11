@@ -21,15 +21,7 @@ class BookingController extends GetxController {
 
   final types = ['In Clinic', 'Video Call'];
 
-  final dates = <Map<String, String>>[
-    {'day': 'Wed', 'date': '28', 'month': 'Oct'},
-    {'day': 'Thu', 'date': '29', 'month': 'Oct'},
-    {'day': 'Fri', 'date': '30', 'month': 'Oct'},
-    {'day': 'Sat', 'date': '31', 'month': 'Oct'},
-    {'day': 'Sun', 'date': '01', 'month': 'Nov'},
-    {'day': 'Mon', 'date': '02', 'month': 'Nov'},
-    {'day': 'Tue', 'date': '03', 'month': 'Nov'},
-  ];
+  late final List<Map<String, String>> dates;
 
   final times = [
     '09:00 AM',
@@ -45,11 +37,32 @@ class BookingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    dates = _generateUpcomingDates();
     // Pre-fill patient details from logged-in session
     if (ApiService.currentUser != null) {
       nameController.text = ApiService.currentUser!.name;
       phoneController.text = ApiService.currentUser!.phone;
     }
+  }
+
+  static List<Map<String, String>> _generateUpcomingDates() {
+    final list = <Map<String, String>>[];
+    final now = DateTime.now();
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    for (int i = 0; i < 14; i++) {
+      final d = now.add(Duration(days: i));
+      list.add({
+        'day': i == 0 ? 'Today' : (i == 1 ? 'Tmrw' : weekdays[d.weekday - 1]),
+        'date': d.day.toString().padLeft(2, '0'),
+        'month': months[d.month - 1],
+      });
+    }
+    return list;
   }
 
   void selectDate(int index) => selectedDate.value = index;

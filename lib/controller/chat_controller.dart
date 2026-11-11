@@ -1,64 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../modle/chat_model.dart';
+import '../services/api_service.dart';
 
 class ChatController extends GetxController {
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
   final selectedFilter = 'All'.obs; // 'All', 'Unread', 'Online'
+  final isLoading = false.obs;
 
-  final chats = <ChatModel>[
-    ChatModel(
-      doctorName: 'Dr. Ananya Sharma',
-      specialty: 'Cardiologist',
-      hospital: 'Apollo Hospital',
-      lastMessage: 'Please drink more water today and avoid heavy exercise.',
-      time: '4:12 PM',
-      unread: 2,
-      online: true,
-      avatarColor: const Color(0xFF0D9488),
-    ),
-    ChatModel(
-      doctorName: 'Dr. Rohan Mehta',
-      specialty: 'Dentist',
-      hospital: 'City Dental Care',
-      lastMessage: 'Your dental X-ray reports look completely normal.',
-      time: '11:30 AM',
-      unread: 0,
-      online: false,
-      avatarColor: const Color(0xFF3B82F6),
-    ),
-    ChatModel(
-      doctorName: 'Dr. Priya Verma',
-      specialty: 'Neurologist',
-      hospital: 'Max Super Speciality',
-      lastMessage: 'See you on Friday for the follow-up consultation.',
-      time: 'Yesterday',
-      unread: 1,
-      online: true,
-      avatarColor: const Color(0xFF8B5CF6),
-    ),
-    ChatModel(
-      doctorName: 'Dr. Amit Singh',
-      specialty: 'Orthopedic',
-      hospital: 'Fortis Hospital',
-      lastMessage: 'Take the prescribed calcium supplements after breakfast.',
-      time: '2 days ago',
-      unread: 0,
-      online: true,
-      avatarColor: const Color(0xFFF59E0B),
-    ),
-    ChatModel(
-      doctorName: 'Dr. Neha Gupta',
-      specialty: 'Dermatologist',
-      hospital: 'Skin & Cure Clinic',
-      lastMessage: 'Apply the prescribed sunscreen 20 mins before going outside.',
-      time: '3 days ago',
-      unread: 0,
-      online: false,
-      avatarColor: const Color(0xFFEC4899),
-    ),
-  ].obs;
+  final chats = <ChatModel>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadConversations();
+  }
+
+  Future<void> loadConversations() async {
+    isLoading.value = true;
+    try {
+      final list = await ApiService.getChatConversations();
+      if (list.isNotEmpty) {
+        chats.assignAll(list);
+      } else {
+        // Fallback to live doctors so user can start conversation with any doctor
+        final doctors = await ApiService.getDoctors();
+        if (doctors.isNotEmpty) {
+          chats.assignAll(
+            doctors.map((d) => ChatModel(
+              doctorId: d.id,
+              doctorName: d.name,
+              specialty: d.specialty,
+              hospital: d.hospital,
+              lastMessage: 'Tap to start consultation',
+              time: 'Available',
+              unread: 0,
+              online: d.online,
+              avatarColor: d.avatarColor,
+            )).toList(),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ChatController] loadConversations error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   List<ChatModel> get filteredChats {
     final query = searchQuery.value.trim().toLowerCase();
@@ -98,6 +87,7 @@ class ChatController extends GetxController {
     if (index != -1 && chats[index].unread > 0) {
       final old = chats[index];
       chats[index] = ChatModel(
+        doctorId: old.doctorId,
         doctorName: old.doctorName,
         specialty: old.specialty,
         hospital: old.hospital,
@@ -118,6 +108,7 @@ class ChatController extends GetxController {
 }
 
 class ChatDetailController extends GetxController {
+  final int doctorId;
   final String doctorName;
   final String specialty;
   final bool isDoctorOnline;
@@ -125,6 +116,7 @@ class ChatDetailController extends GetxController {
 
   ChatDetailController(
     this.doctorName, {
+    this.doctorId = 1,
     this.specialty = 'Specialist',
     this.isDoctorOnline = true,
     this.avatarColor = const Color(0xFF0D9488),
@@ -133,53 +125,66 @@ class ChatDetailController extends GetxController {
   final messageController = TextEditingController();
   final scrollController = ScrollController();
   final isTyping = false.obs;
+  final isLoading = false.obs;
 
-  final messages = <ChatMessage>[
-    ChatMessage(
-      text: 'Hello Doctor, I have been having a mild headache since yesterday.',
-      isMe: true,
-      time: '4:00 PM',
-      isRead: true,
-    ),
-    ChatMessage(
-      text: 'Hello! How long has this headache been persisting? Any dizziness or blurred vision?',
-      isMe: false,
-      time: '4:05 PM',
-      isRead: true,
-    ),
-    ChatMessage(
-      text: 'Since last night. No dizziness, just mild throbbing in the forehead after working on the laptop.',
-      isMe: true,
-      time: '4:07 PM',
-      isRead: true,
-    ),
-    ChatMessage(
-      text: 'Understood. Please drink at least 2-3 liters of water, take regular 20-20-20 screen breaks, and rest in a well-ventilated room.',
-      isMe: false,
-      time: '4:12 PM',
-      isRead: true,
-    ),
-  ].obs;
+  final messages = <ChatMessage>[].obs;
 
-  void send([String? customText]) {
+  @override
+  void onInit() {
+    super.onInit();
+    loadMessages();
+  }
+
+  Future<void> loadMessages() async {
+    isLoading.value = true;
+    try {
+      final list = await ApiService.getChatMessages(doctorId);
+      if (list.isNotEmpty) {
+        messages.assignAll(list);
+        _scrollToBottom();
+      } else {
+        // Initial friendly greeting from doctor
+        messages.assignAll([
+          ChatMessage(
+            text: 'Hello! I am $doctorName. How may I assist with your health today?',
+            isMe: false,
+            time: 'Recent',
+            isRead: true,
+          ),
+        ]);
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ChatDetailController] loadMessages error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> send([String? customText]) async {
     final text = (customText ?? messageController.text).trim();
     if (text.isEmpty) return;
-
-    messages.add(
-      ChatMessage(
-        text: text,
-        isMe: true,
-        time: _currentTime(),
-        isRead: false,
-      ),
-    );
 
     if (customText == null) {
       messageController.clear();
     }
+
+    final newMsg = ChatMessage(
+      text: text,
+      isMe: true,
+      time: _currentTime(),
+      isRead: false,
+    );
+    messages.add(newMsg);
     _scrollToBottom();
 
-    // Simulated doctor response after 1.2 seconds
+    try {
+      // Send message to REST API to save into MySQL database
+      await ApiService.sendChatMessage(doctorId, text);
+    } catch (e) {
+      debugPrint('ℹ️ [ChatDetailController] send error: $e');
+    }
+
+    // Dynamic doctor reply
     _simulateDoctorReply(text);
   }
 
@@ -188,12 +193,13 @@ class ChatDetailController extends GetxController {
     Future.delayed(const Duration(milliseconds: 1400), () {
       isTyping.value = false;
       String reply = 'Thank you for updating me. Continue the prescribed routine and let me know if symptoms persist.';
-      if (userMsg.toLowerCase().contains('pain') || userMsg.toLowerCase().contains('headache')) {
-        reply = 'Please take Paracetamol 500mg if the headache intensifies, and make sure to get 8 hours of sleep.';
-      } else if (userMsg.toLowerCase().contains('report') || userMsg.toLowerCase().contains('test')) {
-        reply = 'I reviewed your reports. Everything is in the normal range. Keep up the healthy lifestyle!';
-      } else if (userMsg.toLowerCase().contains('thank')) {
-        reply = 'You are most welcome! Take care and stay healthy. 😊';
+      final lower = userMsg.toLowerCase();
+      if (lower.contains('pain') || lower.contains('headache') || lower.contains('fever')) {
+        reply = 'Please rest and stay hydrated. If symptoms persist for more than 24 hours, let me know.';
+      } else if (lower.contains('report') || lower.contains('test')) {
+        reply = 'I reviewed your clinical details. Everything appears in the safe range. Keep maintaining your routine!';
+      } else if (lower.contains('thank')) {
+        reply = 'You are most welcome! Take good care of your health. 😊';
       }
 
       messages.add(

@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import '../modle/user_model.dart';
 import '../modle/doctor_model.dart';
 import '../modle/appointment_model.dart';
+import '../modle/chat_model.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -17,6 +20,72 @@ class ApiService {
 
   /// Current logged-in user session (null by default until login or signup)
   static UserModel? currentUser;
+
+  // ==========================================
+  // Session Persistence
+  // ==========================================
+  static File? _cachedSessionFile;
+
+  static Future<File> _getSessionFile() async {
+    if (_cachedSessionFile != null) return _cachedSessionFile!;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      _cachedSessionFile = File('${dir.path}/medicare_session.json');
+      return _cachedSessionFile!;
+    } catch (e) {
+      final tempDir = Directory.systemTemp;
+      _cachedSessionFile = File('${tempDir.path}/medicare_session.json');
+      return _cachedSessionFile!;
+    }
+  }
+
+  static Future<void> saveSession(UserModel user) async {
+    try {
+      final file = await _getSessionFile();
+      final jsonString = jsonEncode(user.toJson());
+      await file.writeAsString(jsonString);
+      debugPrint('💾 [ApiService] Session saved for ${user.email}');
+    } catch (e) {
+      debugPrint('⚠️ [ApiService] Failed to save session: $e');
+    }
+  }
+
+  static Future<UserModel?> restoreSession() async {
+    try {
+      final file = await _getSessionFile();
+      if (!await file.exists()) {
+        debugPrint('ℹ️ [ApiService] No existing session found on disk');
+        return null;
+      }
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) return null;
+      final data = jsonDecode(raw);
+      if (data is Map<String, dynamic>) {
+        final user = UserModel.fromJson(data);
+        if (user.token != null && user.token!.isNotEmpty) {
+          currentUser = user;
+          debugPrint('🔑 [ApiService] Session restored for ${user.email}');
+          return user;
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [ApiService] Error restoring session: $e');
+    }
+    return null;
+  }
+
+  static Future<void> clearSession() async {
+    currentUser = null;
+    try {
+      final file = await _getSessionFile();
+      if (await file.exists()) {
+        await file.delete();
+        debugPrint('🗑️ [ApiService] Session cleared from disk');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [ApiService] Failed to delete session file: $e');
+    }
+  }
 
   /// Live Render.com production URL:
   static const String liveBaseUrl = 'https://doctor-appoiment.onrender.com/api';
@@ -75,6 +144,7 @@ class ApiService {
         if (body is Map && body['success'] == true) {
           final user = UserModel.fromJson(body['data']);
           currentUser = user;
+          await saveSession(user);
           return user;
         }
       }
@@ -138,6 +208,7 @@ class ApiService {
         if (body is Map && body['success'] == true) {
           final user = UserModel.fromJson(body['data']);
           currentUser = user;
+          await saveSession(user);
           return user;
         }
       }
@@ -311,16 +382,16 @@ class ApiService {
     );
   }
 
-  /// Get user appointments
-  /// GET /api/appointments/admin/all or /api/appointments
+  /// Get logged-in user's appointments
+  /// GET /api/appointments
   static Future<List<AppointmentModel>> getMyAppointments() async {
-    final url = '$baseUrl/appointments/admin/all';
+    final url = '$baseUrl/appointments';
 
     try {
       final response = await _connect.get(url, headers: _authHeaders);
       if (response.statusCode == 200 && response.body is Map && response.body['success'] == true) {
         final list = response.body['data'] as List?;
-        if (list != null && list.isNotEmpty) {
+        if (list != null) {
           return list.map((item) => AppointmentModel.fromJson(item)).toList();
         }
       }
@@ -328,36 +399,7 @@ class ApiService {
       debugPrint('ℹ️ [ApiService] Failed to fetch appointments: $e');
     }
 
-    return [
-      AppointmentModel(
-        id: '1',
-        doctorId: 1,
-        doctorName: 'Dr. Ananya Sharma',
-        specialty: 'Cardiologist',
-        hospital: 'Apollo Hospital',
-        date: 'Wed, 28 Oct',
-        time: '04:30 PM',
-        type: 'Video Call',
-        status: 'upcoming',
-        fee: '₹800',
-        patientName: currentUser?.name ?? 'Rahul Kumar',
-        phone: currentUser?.phone ?? '+91 98765 43210',
-      ),
-      AppointmentModel(
-        id: '2',
-        doctorId: 2,
-        doctorName: 'Dr. Rohan Mehta',
-        specialty: 'Dentist',
-        hospital: 'City Dental Care',
-        date: 'Fri, 30 Oct',
-        time: '11:30 AM',
-        type: 'In Clinic',
-        status: 'upcoming',
-        fee: '₹500',
-        patientName: currentUser?.name ?? 'Rahul Kumar',
-        phone: currentUser?.phone ?? '+91 98765 43210',
-      ),
-    ];
+    return [];
   }
 
   /// Cancel appointment
@@ -379,6 +421,29 @@ class ApiService {
   // ==========================================
   // 4. Profile APIs
   // ==========================================
+
+  /// Fetch user profile from backend
+  /// GET /api/auth/profile
+  static Future<UserModel?> getProfile() async {
+    final url = '$baseUrl/auth/profile';
+
+    try {
+      final response = await _connect.get(url, headers: _authHeaders);
+      if (response.statusCode == 200 && response.body is Map && response.body['success'] == true) {
+        final data = response.body['data'];
+        if (data is Map) {
+          final user = UserModel.fromJson(Map<String, dynamic>.from(data));
+          final token = currentUser?.token;
+          currentUser = user.copyWith(token: token);
+          saveSession(currentUser!);
+          return currentUser;
+        }
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ApiService] Get profile error: $e');
+    }
+    return currentUser;
+  }
 
   /// Update user profile
   /// PUT /api/auth/profile
@@ -408,8 +473,9 @@ class ApiService {
       );
 
       if (response.statusCode == 200 && response.body is Map && response.body['success'] == true) {
-        final user = UserModel.fromJson(response.body['data']);
+        final user = UserModel.fromJson(response.body['data']).copyWith(token: currentUser?.token);
         currentUser = user;
+        saveSession(user);
         return user;
       }
     } catch (e) {
@@ -419,15 +485,16 @@ class ApiService {
     final updated = UserModel(
       id: currentUser?.id ?? 1,
       name: name.trim(),
-      email: currentUser?.email ?? 'rahul@gmail.com',
+      email: currentUser?.email ?? '',
       phone: phone.trim(),
       city: city.trim(),
-      bloodGroup: bloodGroup ?? currentUser?.bloodGroup ?? 'O+',
-      weight: weight ?? currentUser?.weight ?? '68 kg',
-      height: height ?? currentUser?.height ?? "5'9\"",
+      bloodGroup: bloodGroup ?? currentUser?.bloodGroup,
+      weight: weight ?? currentUser?.weight,
+      height: height ?? currentUser?.height,
       token: currentUser?.token,
     );
     currentUser = updated;
+    saveSession(updated);
     return updated;
   }
 
@@ -478,5 +545,74 @@ class ApiService {
         'is_read': true,
       },
     ];
+  }
+
+  // ==========================================
+  // 6. Live Chat APIs
+  // ==========================================
+
+  /// Get active chat conversations
+  /// GET /api/chat/conversations
+  static Future<List<ChatModel>> getChatConversations() async {
+    final url = '$baseUrl/chat/conversations';
+
+    try {
+      final response = await _connect.get(url, headers: _authHeaders);
+      if (response.statusCode == 200 && response.body is Map && response.body['success'] == true) {
+        final list = response.body['data'] as List?;
+        if (list != null && list.isNotEmpty) {
+          return list.map((item) => ChatModel.fromJson(Map<String, dynamic>.from(item))).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ApiService] Get chat conversations error: $e');
+    }
+
+    return [];
+  }
+
+  /// Get messages with a specific doctor
+  /// GET /api/chat/:doctorId/messages
+  static Future<List<ChatMessage>> getChatMessages(int doctorId) async {
+    final url = '$baseUrl/chat/$doctorId/messages';
+
+    try {
+      final response = await _connect.get(url, headers: _authHeaders);
+      if (response.statusCode == 200 && response.body is Map && response.body['success'] == true) {
+        final list = response.body['data'] as List?;
+        if (list != null) {
+          return list.map((item) => ChatMessage.fromJson(Map<String, dynamic>.from(item))).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ApiService] Get chat messages error: $e');
+    }
+
+    return [];
+  }
+
+  /// Send message to doctor
+  /// POST /api/chat/:doctorId/messages
+  static Future<ChatMessage?> sendChatMessage(int doctorId, String message) async {
+    final url = '$baseUrl/chat/$doctorId/messages';
+
+    try {
+      final response = await _connect.post(
+        url,
+        {'message': message.trim()},
+        contentType: 'application/json',
+        headers: _authHeaders,
+      );
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body is Map &&
+          response.body['success'] == true) {
+        return ChatMessage.fromJson(Map<String, dynamic>.from(response.body['data']));
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ApiService] Send message error: $e');
+    }
+
+    return null;
   }
 }

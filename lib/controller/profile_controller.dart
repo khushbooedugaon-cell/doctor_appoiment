@@ -8,17 +8,34 @@ class ProfileController extends GetxController {
   final user = (ApiService.currentUser ??
       UserModel(
         id: 1,
-        name: 'Rahul Kumar',
-        email: 'rahul@gmail.com',
-        phone: '+91 98765 43210',
+        name: 'Patient',
+        email: '',
+        phone: '',
         city: 'Patna',
         bloodGroup: 'O+',
         weight: '68 kg',
         height: "5'9\"",
       )).obs;
 
-  void logout() {
-    ApiService.currentUser = null;
+  @override
+  void onInit() {
+    super.onInit();
+    fetchProfile();
+  }
+
+  Future<void> fetchProfile() async {
+    try {
+      final p = await ApiService.getProfile();
+      if (p != null) {
+        user.value = p;
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ProfileController] fetchProfile error: $e');
+    }
+  }
+
+  Future<void> logout() async {
+    await ApiService.clearSession();
     Get.snackbar(
       'Signed Out',
       'You have been logged out of your account.',

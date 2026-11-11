@@ -50,4 +50,30 @@ class UserModel {
       'token': token,
     };
   }
+
+  UserModel copyWith({
+    int? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? password,
+    String? city,
+    String? bloodGroup,
+    String? weight,
+    String? height,
+    String? token,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      password: password ?? this.password,
+      city: city ?? this.city,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      token: token ?? this.token,
+    );
+  }
 }

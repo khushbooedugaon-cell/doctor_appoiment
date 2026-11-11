@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../controller/appointment_controller.dart';
 import '../controller/home_controller.dart';
+import '../controller/main_controller.dart';
+import '../controller/profile_controller.dart';
 import '../modle/doctor_model.dart';
+import 'appointment_detail_screen.dart';
 import 'notifications_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -64,35 +68,68 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profileC = Get.isRegistered<ProfileController>()
+        ? Get.find<ProfileController>()
+        : Get.put(ProfileController());
+
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+
     return Row(
       children: [
-        Container(
-          height: 48,
-          width: 48,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0F766E), Color(0xFF2DD4BF)],
+        Obx(() {
+          final name = profileC.user.value.name.trim();
+          final initial = name.isNotEmpty ? name[0].toUpperCase() : '';
+
+          return Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F766E), Color(0xFF2DD4BF)],
+              ),
+              borderRadius: BorderRadius.circular(16),
             ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.person_rounded, color: Colors.white),
-        ),
+            alignment: Alignment.center,
+            child: initial.isNotEmpty
+                ? Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : const Icon(Icons.person_rounded, color: Colors.white),
+          );
+        }),
         const SizedBox(width: 12),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Good afternoon',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Khusi 👋',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
+        Expanded(
+          child: Obx(() {
+            final name = profileC.user.value.name.trim();
+            final firstName = name.isNotEmpty ? name.split(' ').first : 'Patient';
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$firstName 👋',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            );
+          }),
         ),
         _IconBtn(
           icon: Icons.notifications_none_rounded,
@@ -189,101 +226,202 @@ class _UpcomingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF115E59), Color(0xFF14B8A6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Next Appointment',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.16),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Today • 4:30 PM',
-                  style: TextStyle(color: Colors.white, fontSize: 11),
-                ),
+    final apptC = Get.isRegistered<AppointmentsController>()
+        ? Get.find<AppointmentsController>()
+        : Get.put(AppointmentsController());
+
+    return Obx(() {
+      final upcomingList = apptC.appointments
+          .where((a) => a.status.toLowerCase() == 'upcoming')
+          .toList();
+
+      if (upcomingList.isEmpty) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D9488).withOpacity(0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
+          child: Row(
             children: [
-              Container(
-                height: 54,
-                width: 54,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(Icons.person_rounded, color: Color(0xFF0D9488), size: 30),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Dr. Ananya Sharma',
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Instant Consultations',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'No Upcoming Appointments',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
-                      'Cardiologist  •  Apollo Hospital',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      'Find top specialists and book in seconds.',
+                      style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _SoftBtn(
-                  icon: Icons.videocam_rounded,
-                  label: 'Video Call',
-                  onTap: () {},
-                ),
-              ),
               const SizedBox(width: 10),
-              Expanded(
-                child: _SoftBtn(
-                  icon: Icons.location_on_outlined,
-                  label: 'Directions',
-                  onTap: () {},
+              ElevatedButton(
+                onPressed: () {
+                  if (Get.isRegistered<MainController>()) {
+                    Get.find<MainController>().changeNav(1);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0F766E),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
                 ),
+                child: const Text('Book Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+
+      final nextAppt = upcomingList.first;
+
+      return InkWell(
+        onTap: () => Get.to(() => AppointmentDetailScreen(item: nextAppt)),
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF115E59), Color(0xFF14B8A6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D9488).withOpacity(0.22),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Next Appointment',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.16),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${nextAppt.date} • ${nextAppt.time}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    height: 54,
+                    width: 54,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(Icons.person_rounded, color: Color(0xFF0D9488), size: 30),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          nextAppt.doctorName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${nextAppt.specialty}  •  ${nextAppt.hospital}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SoftBtn(
+                      icon: nextAppt.type == 'Video Call' ? Icons.videocam_rounded : Icons.local_hospital_rounded,
+                      label: nextAppt.type,
+                      onTap: () => Get.to(() => AppointmentDetailScreen(item: nextAppt)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _SoftBtn(
+                      icon: Icons.info_outline_rounded,
+                      label: 'View Details',
+                      onTap: () => Get.to(() => AppointmentDetailScreen(item: nextAppt)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }
 

@@ -290,6 +290,7 @@ class ChatScreen extends StatelessWidget {
                   onTap: () {
                     c.markAsRead(doc.doctorName);
                     Get.to(() => ChatDetailScreen(
+                          doctorId: doc.doctorId,
                           doctorName: doc.doctorName,
                           specialty: doc.specialty,
                           avatarColor: doc.avatarColor,
@@ -521,6 +522,7 @@ class ChatScreen extends StatelessWidget {
             onTap: () {
               c.markAsRead(chat.doctorName);
               Get.to(() => ChatDetailScreen(
+                    doctorId: chat.doctorId,
                     doctorName: chat.doctorName,
                     specialty: chat.specialty,
                     avatarColor: chat.avatarColor,
@@ -744,6 +746,7 @@ class ChatScreen extends StatelessWidget {
                       onTap: () {
                         Navigator.pop(context);
                         Get.to(() => ChatDetailScreen(
+                              doctorId: doc.doctorId,
                               doctorName: doc.doctorName,
                               specialty: doc.specialty,
                               avatarColor: doc.avatarColor,

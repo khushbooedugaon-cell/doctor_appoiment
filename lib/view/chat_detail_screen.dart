@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controller/chat_controller.dart';
 
 class ChatDetailScreen extends StatelessWidget {
+  final int doctorId;
   final String doctorName;
   final String specialty;
   final Color avatarColor;
@@ -10,6 +11,7 @@ class ChatDetailScreen extends StatelessWidget {
 
   const ChatDetailScreen({
     super.key,
+    this.doctorId = 1,
     required this.doctorName,
     this.specialty = 'Specialist',
     this.avatarColor = const Color(0xFF0D9488),
@@ -21,11 +23,12 @@ class ChatDetailScreen extends StatelessWidget {
     final c = Get.put(
       ChatDetailController(
         doctorName,
+        doctorId: doctorId,
         specialty: specialty,
         avatarColor: avatarColor,
         isDoctorOnline: isDoctorOnline,
       ),
-      tag: doctorName,
+      tag: '${doctorName}_$doctorId',
     );
 
     return Scaffold(

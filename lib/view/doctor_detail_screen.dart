@@ -67,7 +67,9 @@ class DoctorDetailScreen extends StatelessWidget {
           const Text('About', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Text(
-            '${doctor.name} is a trusted ${doctor.specialty.toLowerCase()} at ${doctor.hospital}. Patients ke liye caring aur experienced consultation.',
+            doctor.about.isNotEmpty
+                ? doctor.about
+                : '${doctor.name} is a dedicated ${doctor.specialty.toLowerCase()} at ${doctor.hospital}, committed to delivering high-quality and compassionate healthcare.',
             style: const TextStyle(color: Color(0xFF64748B), height: 1.5),
           ),
           const SizedBox(height: 18),
